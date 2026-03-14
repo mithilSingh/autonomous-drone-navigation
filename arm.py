@@ -1,47 +1,26 @@
 from pymavlink import mavutil
 import time
 
-# ----------------------------
-# CONNECT TO FLIGHT CONTROLLER
-# ----------------------------
-print("Connecting to drone...")
-
+# Connect to flight controller
 master = mavutil.mavlink_connection('/dev/serial0', baud=57600)
 
-# Wait for heartbeat
+print("Waiting for heartbeat...")
 master.wait_heartbeat()
-
 print("Heartbeat received")
-print(f"System: {master.target_system}")
-print(f"Component: {master.target_component}")
 
-# ----------------------------
-# ARM COMMAND
-# ----------------------------
-print("Arming motors...")
+# Arm the drone
+print("Arming drone...")
+master.arducopter_arm()
 
-master.mav.command_long_send(
-    master.target_system,
-    master.target_component,
-    mavutil.mavlink.MAV_CMD_COMPONENT_ARM_DISARM,
-    0,
-    1,  # 1 = arm, 0 = disarm
-    0, 0, 0, 0, 0, 0
-)
+master.motors_armed_wait()
+print("Drone armed")
 
-# ----------------------------
-# CONFIRM ARMING
-# ----------------------------
-while True:
+# Wait for 5 seconds
+time.sleep(5)
 
-    msg = master.recv_match(type='HEARTBEAT', blocking=True)
+# Disarm drone
+print("Disarming drone...")
+master.arducopter_disarm()
 
-    if msg.base_mode & mavutil.mavlink.MAV_MODE_FLAG_SAFETY_ARMED:
-        print("Drone is ARMED")
-        break
-
-    else:
-        print("Waiting for arming...")
-        time.sleep(1)
-
-print("Arming complete")
+master.motors_disarmed_wait()
+print("Drone disarmed")
